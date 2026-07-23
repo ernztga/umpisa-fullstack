@@ -9,8 +9,8 @@ import { expressMiddleware } from '@as-integrations/express5';
 import { env } from '@/config/env';
 import { requestLogger } from '@/middleware/requestLogger';
 import { errorHandler } from '@/middleware/errorHandler';
-import { baseTypeDefs } from '@/graphql/typeDefs';
-import { baseResolvers } from '@/graphql/resolvers';
+import { typeDefs } from '@/graphql/typeDefs';
+import { resolvers } from '@/graphql/resolvers';
 import { buildContext } from '@/graphql/buildContext';
 import { formatGraphQLError } from '@/graphql/formatError';
 import { prisma } from '@/lib/prisma';
@@ -56,8 +56,8 @@ export async function createApp(): Promise<Express> {
 
   // --- Apollo Server / GraphQL ---
   const apolloServer = new ApolloServer({
-    typeDefs: baseTypeDefs,
-    resolvers: baseResolvers,
+    typeDefs: typeDefs,
+    resolvers: resolvers,
     formatError: formatGraphQLError,
   });
   await apolloServer.start();

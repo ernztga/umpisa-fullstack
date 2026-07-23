@@ -1,11 +1,12 @@
+import { authResolvers } from '@/graphql/resolvers/authResolvers';
 import type { GraphQLContext } from '@/graphql/context';
 
-/**
- * Root resolver map. Feature resolvers (auth, category, expense) get
- * merged into `Query`/`Mutation` here as they're built.
- */
-export const baseResolvers = {
+export const resolvers = {
   Query: {
     ping: (_parent: unknown, _args: unknown, _context: GraphQLContext): string => 'pong',
+    ...authResolvers.Query,
+  },
+  Mutation: {
+    ...authResolvers.Mutation,
   },
 };

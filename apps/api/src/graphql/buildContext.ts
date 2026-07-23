@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import type { PrismaClient } from '@prisma/client';
 import type { GraphQLContext } from '@/graphql/context';
+import { authenticateRequest } from '@/middleware/authenticate';
 
 interface BuildContextArgs {
   req: Request;
@@ -8,9 +9,6 @@ interface BuildContextArgs {
   prisma: PrismaClient;
 }
 
-/**
- * Builds the per-request GraphQL context.
- */
 export async function buildContext({
   req,
   res,
@@ -20,6 +18,6 @@ export async function buildContext({
     req,
     res,
     prisma,
-    user: null,
+    user: authenticateRequest(req, res),
   };
 }
