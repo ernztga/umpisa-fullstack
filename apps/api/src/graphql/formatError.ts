@@ -1,30 +1,34 @@
 import type { GraphQLFormattedError } from 'graphql';
+import { GraphQLError } from 'graphql';
 import { logger } from '@/config/logger';
 import { env } from '@/config/env';
+import { AppError } from '@/errors/AppError';
 
-/**
- * Central place where every GraphQL error is shaped before being sent
- * to the client. Two goals:
- *  1. Log the FULL error server-side (for debugging).
- *  2. Send the client only a safe, minimal error shape — never a raw
- *     stack trace or internal Prisma/DB error message in production.
- */
 export function formatGraphQLError(
   formattedError: GraphQLFormattedError,
   error: unknown,
 ): GraphQLFormattedError {
-  logger.error({ err: error }, 'GraphQL error');
+  const originalError = error instanceof GraphQLError ? error.originalError : error;
 
-  if (env.NODE_ENV === 'production') {
+  const isOperational = originalError instanceof AppError;
+
+  logger.error(
+    { err: error, isOperational },
+    isOperational ? 'Operational error' : 'Unexpected error',
+  );
+
+  if (isOperational) {
+    // User-facing message
     return {
-      message:
-        formattedError.extensions?.['code'] === 'UNAUTHENTICATED'
-          ? formattedError.message // safe, expected client-facing messages
-          : 'An unexpected error occurred.',
-      extensions: { code: formattedError.extensions?.['code'] ?? 'INTERNAL_SERVER_ERROR' },
+      message: formattedError.message,
+      extensions: { code: (originalError as AppError).code },
     };
   }
 
-  // In development, return full detail to speed up debugging.
-  return formattedError;
+  // Unexpected/internal error: never leak details, even in development
+  return {
+    message:
+      env.NODE_ENV === 'production' ? 'An unexpected error occurred.' : formattedError.message,
+    extensions: { code: 'INTERNAL_SERVER_ERROR' },
+  };
 }
