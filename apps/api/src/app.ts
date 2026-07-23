@@ -3,7 +3,6 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
-import rateLimit from 'express-rate-limit';
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@as-integrations/express5';
 import { env } from '@/config/env';
@@ -34,15 +33,6 @@ export async function createApp(): Promise<Express> {
       credentials: true, // required: we send/receive httpOnly cookies
     }),
   );
-
-  const globalRateLimiter = rateLimit({
-    windowMs: env.RATE_LIMIT_WINDOW_MS,
-    limit: env.RATE_LIMIT_MAX_REQUESTS,
-    standardHeaders: true, // return RateLimit-* headers
-    legacyHeaders: false,
-    message: { error: { message: 'Too many requests. Please try again later.' } },
-  });
-  app.use(globalRateLimiter);
 
   app.use(compression());
   app.use(express.json({ limit: '1mb' }));
