@@ -1,0 +1,92 @@
+# =========================
+# Dependencies
+# =========================
+node_modules/
+**/node_modules/
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# =========================
+# Environment Variables
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Build Output
+# =========================
+dist/
+build/
+out/
+.next/
+.nuxt/
+coverage/
+storybook-static/
+
+# Vite
+vite.svg
+
+# =========================
+# TypeScript
+# =========================
+*.tsbuildinfo
+
+# =========================
+# Cache
+# =========================
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
+.stylelintcache
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# =========================
+# IDEs & Editors
+# =========================
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Claude / AI Tools
+# =========================
+.claude/
+.agents/
+.windsurf/
+.cursor/
+
+# =========================
+# Prisma
+# =========================
+apps/api/src/generated/prisma/
+apps/api/prisma/generated/
+
+# =========================
+# Miscellaneous
+# =========================
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
