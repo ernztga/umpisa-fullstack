@@ -1,5 +1,6 @@
 import { gql } from 'graphql-tag';
 import { authTypeDefs } from '@/graphql/typeDefs/auth';
+import { categoryTypeDefs } from '@/graphql/typeDefs/category';
 
 const rootTypeDefs = gql`
   type Query {
@@ -11,4 +12,4 @@ const rootTypeDefs = gql`
   }
 `;
 
-export const typeDefs = [rootTypeDefs, authTypeDefs];
+export const typeDefs = [rootTypeDefs, authTypeDefs, categoryTypeDefs];

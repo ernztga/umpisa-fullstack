@@ -23,9 +23,6 @@ const envSchema = z.object({
 
   CORS_ORIGIN: z.string().url(),
 
-  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
-  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
-
   FX_API_BASE_URL: z.string().url().default('https://api.exchangerate.host'),
 });
 
