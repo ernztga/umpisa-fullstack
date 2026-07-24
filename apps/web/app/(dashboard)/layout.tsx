@@ -6,18 +6,12 @@ import { useRouter } from 'next/navigation';
 import { Box, CircularProgress } from '@mui/material';
 import { ME_QUERY } from '@/lib/graphql/mutations/auth';
 import { useSessionStore } from '@/lib/store/useSessionStore';
+import { AppShell } from '@/components/shell/AppShell';
 
 interface MeQueryData {
   me: { id: string; email: string; firstName: string; lastName: string } | null;
 }
 
-/**
- * Real (server-verified) auth gate for the dashboard section. The
- * middleware already did a cheap cookie-presence check (Step 9.1) —
- * this layout performs the actual verification by calling `me`, which
- * passes through requireAuth on the API and can only succeed with a
- * genuinely valid, unexpired access token.
- */
 export default function DashboardLayout({
   children,
 }: {
@@ -32,7 +26,6 @@ export default function DashboardLayout({
   useEffect(() => {
     if (loading) return;
     setInitializing(false);
-
     if (!data?.me) {
       setAuthenticated(false);
       router.replace('/login');
@@ -51,5 +44,12 @@ export default function DashboardLayout({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <AppShell
+      userInitial={data.me.firstName.charAt(0).toUpperCase()}
+      userName={`${data.me.firstName} ${data.me.lastName}`}
+    >
+      {children}
+    </AppShell>
+  );
 }
