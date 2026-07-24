@@ -5,6 +5,8 @@ import type {
   CreateExpenseInput,
   UpdateExpenseInput,
   ExpenseFilterInput,
+  ExpenseSortField,
+  SortDirection,
 } from '@/validation/expenseSchemas';
 
 export interface PaginatedExpenses {
@@ -24,6 +26,9 @@ function buildExpenseWhere(userId: string, filter?: ExpenseFilterInput): Prisma.
   return {
     userId,
     ...(filter?.categoryId && { categoryId: filter.categoryId }),
+    ...(filter?.description && {
+      description: { contains: filter.description, mode: 'insensitive' },
+    }),
     ...(filter?.startDate || filter?.endDate
       ? {
           date: {
@@ -32,7 +37,29 @@ function buildExpenseWhere(userId: string, filter?: ExpenseFilterInput): Prisma.
           },
         }
       : {}),
+    ...(filter?.minAmount || filter?.maxAmount
+      ? {
+          amount: {
+            ...(filter?.minAmount && { gte: filter.minAmount }),
+            ...(filter?.maxAmount && { lte: filter.maxAmount }),
+          },
+        }
+      : {}),
   };
+}
+
+/**
+ * Translates a user-facing sort field into a Prisma orderBy clause.
+ * ALWAYS appends `id` as a final tiebreaker
+ */
+function buildExpenseOrderBy(
+  sortBy: ExpenseSortField = 'date',
+  sortDirection: SortDirection = 'desc',
+): Prisma.ExpenseOrderByWithRelationInput[] {
+  const primary: Prisma.ExpenseOrderByWithRelationInput =
+    sortBy === 'category' ? { category: { name: sortDirection } } : { [sortBy]: sortDirection };
+
+  return [primary, { id: sortDirection }];
 }
 
 /**
@@ -44,17 +71,24 @@ function buildExpenseWhere(userId: string, filter?: ExpenseFilterInput): Prisma.
 export async function listExpenses(
   prisma: PrismaClient,
   userId: string,
-  options: { first?: number; after?: string; filter?: ExpenseFilterInput },
+  options: {
+    first?: number;
+    after?: string;
+    filter?: ExpenseFilterInput;
+    sortBy?: ExpenseSortField;
+    sortDirection?: SortDirection;
+  },
 ): Promise<PaginatedExpenses> {
   const take = Math.min(options.first ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
   const where = buildExpenseWhere(userId, options.filter);
+  const orderBy = buildExpenseOrderBy(options.sortBy, options.sortDirection);
 
   const items = await prisma.expense.findMany({
     where,
     take: take + 1,
     ...(options.after && { cursor: { id: options.after }, skip: 1 }),
-    orderBy: [{ date: 'desc' }, { id: 'desc' }],
-    include: { category: true }, // eager-load to avoid N+1 in the GraphQL Expense.category resolver
+    orderBy,
+    include: { category: true },
   });
 
   const hasNextPage = items.length > take;

@@ -20,7 +20,12 @@ export interface AuthTokens {
 }
 
 /** Public-safe user shape — NEVER includes passwordHash. */
-export type PublicUser = Pick<User, 'id' | 'email' | 'firstName' | 'lastName' | 'createdAt'>;
+export type PublicUser = Pick<
+  User,
+  'id' | 'email' | 'firstName' | 'lastName' | 'preferredCurrency'
+> & {
+  createdAt: string;
+};
 
 function toPublicUser(user: User): PublicUser {
   return {
@@ -28,10 +33,10 @@ function toPublicUser(user: User): PublicUser {
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
-    createdAt: user.createdAt,
+    preferredCurrency: user.preferredCurrency,
+    createdAt: user.createdAt.toISOString(),
   };
 }
-
 /**
  * Issues a fresh access+refresh token pair for a user and persists the
  * refresh token's hash so it can be revoked later (logout, rotation).
@@ -197,7 +202,7 @@ export async function logoutUser(prisma: PrismaClient, refreshToken: string): Pr
 export { toPublicUser };
 
 /**
- * Verifies a refresh token and returns the associated user, without rotating anything. 
+ * Verifies a refresh token and returns the associated user, without rotating anything.
  */
 export async function getUserFromRefreshToken(
   prisma: PrismaClient,

@@ -6,7 +6,12 @@ export const authTypeDefs = gql`
     email: String!
     firstName: String!
     lastName: String!
+    preferredCurrency: String!
     createdAt: String!
+  }
+
+  input UpdateProfileInput {
+    preferredCurrency: String!
   }
 
   input RegisterInput {
@@ -41,5 +46,9 @@ export const authTypeDefs = gql`
     """
     refreshToken: AuthPayload!
     logout: Boolean!
+  }
+
+  extend type Mutation {
+    updateProfile(input: UpdateProfileInput!): User!
   }
 `;

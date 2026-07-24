@@ -1,24 +1,55 @@
 'use client';
 
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { QueryStateHandler } from '@/components/shared/QueryStateHandler';
-import { useExpenses } from '@/lib/hooks/useExpenses';
-import { subDays } from 'date-fns';
 import { useMemo } from 'react';
+import { useQuery } from '@apollo/client';
+import { Box, Typography, Grid, Card, CardContent } from '@mui/material';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { subDays } from 'date-fns';
+import { QueryStateHandler } from '@/components/shared/QueryStateHandler';
+import { ME_QUERY } from '@/lib/graphql/mutations/auth';
+import { EXPENSES_WITH_CONVERSION_QUERY } from '@/lib/graphql/queries/expenses';
+import { findCurrency } from '@/lib/consts/currencies';
 
-/**
- * See architectural decision 2.3: this dashboard computes totals
- * client-side over the last 90 days of expenses (capped at 100 rows)
- * rather than a dedicated server-side aggregate query — an explicit,
- * documented scope tradeoff appropriate for this project's data
- * volume, not a production-scale aggregation strategy.
- */
+interface MeQueryData {
+  me: { preferredCurrency: string } | null;
+}
+
+interface ExpenseWithConversion {
+  id: string;
+  amount: string;
+  currency: string;
+  convertedAmount: string | null;
+  description: string;
+  date: string;
+  category: { id: string; name: string; color: string } | null;
+}
+
+interface ExpensesQueryData {
+  expenses: { items: ExpenseWithConversion[]; hasNextPage: boolean; endCursor: string | null };
+}
+
 export default function DashboardPage(): React.JSX.Element {
   const startDate = useMemo(() => subDays(new Date(), 90).toISOString(), []);
-  const { expenses, loading, error, refetch } = useExpenses({ first: 100, startDate });
 
-  const totalSpend = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const { data: meData, loading: meLoading } = useQuery<MeQueryData>(ME_QUERY);
+  const preferredCurrency = meData?.me?.preferredCurrency ?? 'PHP';
+
+  const { data, loading, error, refetch } = useQuery<ExpensesQueryData>(
+    EXPENSES_WITH_CONVERSION_QUERY,
+    {
+      variables: { first: 100, filter: { startDate }, targetCurrency: preferredCurrency },
+      skip: meLoading, // wait until we know the preferred currency before firing this query
+    },
+  );
+
+  const expenses = data?.expenses.items ?? [];
+
+  // Prefer the converted amount; if conversion failed for a given
+  // expense fall back to its original amount
+  const amountInPreferredCurrency = (expense: ExpenseWithConversion): number =>
+    Number(expense.convertedAmount ?? expense.amount);
+
+  const totalSpend = expenses.reduce((sum, e) => sum + amountInPreferredCurrency(e), 0);
 
   const byCategory = expenses.reduce<
     Record<string, { name: string; color: string; total: number }>
@@ -27,7 +58,7 @@ export default function DashboardPage(): React.JSX.Element {
     const name = e.category?.name ?? 'Uncategorized';
     const color = e.category?.color ?? '#9CA3AF';
     acc[key] = acc[key] ?? { name, color, total: 0 };
-    acc[key].total += Number(e.amount);
+    acc[key].total += amountInPreferredCurrency(e);
     return acc;
   }, {});
   const categoryBreakdown = Object.values(byCategory);
@@ -36,20 +67,16 @@ export default function DashboardPage(): React.JSX.Element {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
+  const currencySymbolPrefix = findCurrency(preferredCurrency).flag;
+
   return (
     <Box>
-      <Typography
-        variant="h4"
-        sx={{
-          fontWeight: 'fontWeightBold',
-          mb: 3,
-        }}
-      >
+      <Typography variant="h4" sx={{ mb: 3, fontWeight: 600 }}>
         Dashboard
       </Typography>
 
       <QueryStateHandler
-        loading={loading}
+        loading={loading || meLoading}
         error={error}
         isEmpty={expenses.length === 0}
         emptyMessage="No expenses in the last 90 days — your dashboard will populate once you add some."
@@ -60,15 +87,10 @@ export default function DashboardPage(): React.JSX.Element {
             <Card variant="outlined">
               <CardContent>
                 <Typography variant="body2" color="text.secondary">
-                  Total spend (90 days)
+                  Total spend (90 days) · {currencySymbolPrefix} {preferredCurrency}
                 </Typography>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: 700,
-                  }}
-                >
-                  ₱{totalSpend.toFixed(2)}
+                <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                  {preferredCurrency} {totalSpend.toFixed(2)}
                 </Typography>
               </CardContent>
             </Card>
@@ -79,12 +101,7 @@ export default function DashboardPage(): React.JSX.Element {
                 <Typography variant="body2" color="text.secondary">
                   Transactions
                 </Typography>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: 700,
-                  }}
-                >
+                <Typography variant="h4" sx={{ fontWeight: 700 }}>
                   {expenses.length}
                 </Typography>
               </CardContent>
@@ -96,12 +113,7 @@ export default function DashboardPage(): React.JSX.Element {
                 <Typography variant="body2" color="text.secondary">
                   Categories used
                 </Typography>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: 700,
-                  }}
-                >
+                <Typography variant="h4" sx={{ fontWeight: 700 }}>
                   {categoryBreakdown.length}
                 </Typography>
               </CardContent>
@@ -111,14 +123,8 @@ export default function DashboardPage(): React.JSX.Element {
           <Grid size={{ xs: 12, md: 6 }}>
             <Card variant="outlined" sx={{ height: 340 }}>
               <CardContent>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    fontWeight: 600,
-                    mb: 1,
-                  }}
-                >
-                  Spend by category
+                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                  Spend by category ({preferredCurrency})
                 </Typography>
                 <ResponsiveContainer width="100%" height={260}>
                   <PieChart>
@@ -133,7 +139,15 @@ export default function DashboardPage(): React.JSX.Element {
                         <Cell key={entry.name} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip
+                      formatter={(value) => {
+                        if (typeof value !== 'number') {
+                          return String(value ?? '');
+                        }
+
+                        return `${preferredCurrency} ${value.toFixed(2)}`;
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -143,13 +157,7 @@ export default function DashboardPage(): React.JSX.Element {
           <Grid size={{ xs: 12, md: 6 }}>
             <Card variant="outlined" sx={{ height: 340 }}>
               <CardContent>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    fontWeight: 600,
-                    mb: 1,
-                  }}
-                >
+                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                   Recent expenses
                 </Typography>
                 {recentExpenses.map((expense) => (
@@ -164,13 +172,18 @@ export default function DashboardPage(): React.JSX.Element {
                     }}
                   >
                     <Typography variant="body2">{expense.description}</Typography>
-                    <Typography
-                      variant="h4"
-                      sx={{
-                        fontWeight: 'fontWeightBold',
-                      }}
-                    >
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {expense.currency} {expense.amount}
+                      {expense.currency !== preferredCurrency && expense.convertedAmount && (
+                        <Typography
+                          component="span"
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ ml: 0.5 }}
+                        >
+                          (≈ {preferredCurrency} {expense.convertedAmount})
+                        </Typography>
+                      )}
                     </Typography>
                   </Box>
                 ))}

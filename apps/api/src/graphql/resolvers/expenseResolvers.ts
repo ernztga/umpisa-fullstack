@@ -4,6 +4,8 @@ import {
   createExpenseSchema,
   updateExpenseSchema,
   expenseFilterSchema,
+  ExpenseSortField,
+  SortDirection,
 } from '@/validation/expenseSchemas';
 import {
   listExpenses,
@@ -50,7 +52,13 @@ export const expenseResolvers = {
     expenses: requireAuth(
       async (
         _parent: unknown,
-        args: { first?: number; after?: string; filter?: unknown },
+        args: {
+          first?: number;
+          after?: string;
+          filter?: unknown;
+          sortBy?: ExpenseSortField;
+          sortDirection?: SortDirection;
+        },
         context,
       ) => {
         const filter = args.filter ? expenseFilterSchema.parse(args.filter) : undefined;
@@ -58,6 +66,8 @@ export const expenseResolvers = {
           first: args.first,
           after: args.after,
           filter,
+          sortBy: args.sortBy,
+          sortDirection: args.sortDirection,
         });
         return {
           items: result.items,

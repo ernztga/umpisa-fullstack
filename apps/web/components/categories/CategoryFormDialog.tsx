@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { FormTextField } from '@/components/form/FormTextField';
 import { categoryFormSchema, type CategoryFormValues } from '@/lib/validation/categorySchemas';
 import type { CategoryDTO } from '@/lib/hooks/useCategories';
+import { ColorPicker } from '../form/ColorPicker';
 
 interface CategoryFormDialogProps {
   open: boolean;
@@ -48,7 +49,7 @@ export function CategoryFormDialog({
         <DialogContent>
           <Stack spacing={1}>
             <FormTextField name="name" control={control} label="Name" />
-            <FormTextField name="color" control={control} label="Color (hex)" />
+            <ColorPicker name="color" control={control} label="Color" />
           </Stack>
         </DialogContent>
         <DialogActions>

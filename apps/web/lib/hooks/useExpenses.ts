@@ -19,6 +19,11 @@ interface UseExpensesOptions {
   categoryId?: string;
   startDate?: string;
   endDate?: string;
+  description?: string;
+  minAmount?: string;
+  maxAmount?: string;
+  sortBy?: 'date' | 'description' | 'category' | 'amount';
+  sortDirection?: 'asc' | 'desc';
 }
 
 /**
@@ -29,22 +34,37 @@ interface UseExpensesOptions {
  */
 export function useExpenses(options: UseExpensesOptions = {}) {
   const filter =
-    options.categoryId || options.startDate || options.endDate
+    options.categoryId ||
+    options.startDate ||
+    options.endDate ||
+    options.description ||
+    options.minAmount ||
+    options.maxAmount
       ? {
           ...(options.categoryId && { categoryId: options.categoryId }),
           ...(options.startDate && { startDate: options.startDate }),
           ...(options.endDate && { endDate: options.endDate }),
+          ...(options.description && { description: options.description }),
+          ...(options.minAmount && { minAmount: options.minAmount }),
+          ...(options.maxAmount && { maxAmount: options.maxAmount }),
         }
       : undefined;
 
+  const variables = {
+    first: options.first ?? 20,
+    filter,
+    sortBy: options.sortBy ?? 'date',
+    sortDirection: options.sortDirection ?? 'desc',
+  };
+
   const { data, loading, error, fetchMore, refetch } = useQuery<ExpensesQueryData>(EXPENSES_QUERY, {
-    variables: { first: options.first ?? 20, filter },
+    variables,
   });
 
   const loadMore = (): void => {
     if (!data?.expenses.hasNextPage) return;
     void fetchMore({
-      variables: { after: data.expenses.endCursor, filter },
+      variables: { ...variables, after: data.expenses.endCursor },
       updateQuery: (prev, { fetchMoreResult }) => {
         if (!fetchMoreResult) return prev;
         return {

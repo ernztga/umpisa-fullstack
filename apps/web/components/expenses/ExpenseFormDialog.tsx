@@ -17,6 +17,7 @@ import { FormTextField } from '@/components/form/FormTextField';
 import { expenseFormSchema, type ExpenseFormValues } from '@/lib/validation/expenseSchemas';
 import { useCategories } from '@/lib/hooks/useCategories';
 import type { ExpenseDTO } from '@/lib/hooks/useExpenses';
+import { CurrencySelect } from '../form/CurrencySelect';
 
 interface ExpenseFormDialogProps {
   open: boolean;
@@ -70,7 +71,7 @@ export function ExpenseFormDialog({
             <FormTextField name="description" control={control} label="Description" />
             <Stack direction="row" spacing={1}>
               <FormTextField name="amount" control={control} label="Amount" />
-              <FormTextField name="currency" control={control} label="Currency" />
+              <CurrencySelect name="currency" control={control} />
             </Stack>
             <FormTextField name="date" control={control} label="Date" type="date" />
             <Controller
