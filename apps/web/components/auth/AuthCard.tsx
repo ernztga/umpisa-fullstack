@@ -8,11 +8,7 @@ interface AuthCardProps {
 }
 
 /**
- * Reusable card shell shared by Login and Register — the only
- * difference between the two screens is their form fields and copy,
- * so extracting the shared chrome (paper, title, subtitle spacing)
- * here avoids duplicating layout markup between two nearly-identical
- * screens. Directly satisfies "high component reusability."
+ * Reusable card shell shared by Login and Register
  */
 export function AuthCard({ title, subtitle, children }: AuthCardProps): React.JSX.Element {
   return (

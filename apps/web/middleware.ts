@@ -4,17 +4,8 @@ const ACCESS_TOKEN_COOKIE = 'access_token';
 const PUBLIC_PATHS = ['/login', '/register'];
 
 /**
- * Edge middleware providing route-protection UX: redirects to /login
- * if there's obviously no session cookie present, BEFORE the page
- * itself renders (avoiding a flash of protected content).
- *
- * This is NOT the real security boundary — it only checks cookie
- * PRESENCE, not JWT validity (see architectural decision 2.1). The
- * actual authorization enforcement happens server-side, on every
- * GraphQL request, via the API's requireAuth wrapper (Step 4) — this
- * middleware existing or not existing has zero effect on whether an
- * attacker could access another user's data, because the API never
- * trusts the frontend's judgment about who's logged in.
+ * - Provides route-protection UX: redirects to /login if no session cookie present
+ * - Not the real security boundary — only checks cookie presence, not JWT validity
  */
 export function middleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
@@ -28,10 +19,7 @@ export function middleware(request: NextRequest): NextResponse {
   }
 
   if (hasAccessTokenCookie && isPublicPath) {
-    // Already have a session cookie and trying to visit /login or
-    // /register — bounce to the dashboard instead. (Still just a UX
-    // nicety: if the cookie turns out to be expired, the dashboard's
-    // own `me` check will catch that and redirect back appropriately.)
+    // If cookie exists  and trying to visit /login or /register — redirect to the dashboard instead.
     return NextResponse.redirect(new URL('/', request.url));
   }
 
@@ -39,7 +27,6 @@ export function middleware(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  // Run on every path EXCEPT static assets/Next internals — no point
-  // spending edge middleware cycles on files that were never protected.
+  // Run on every path EXCEPT static assets/Next internals
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };

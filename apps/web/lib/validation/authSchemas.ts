@@ -1,11 +1,8 @@
 import { z } from 'zod';
 
 /**
- * Frontend-side mirror of the backend's authSchemas.ts (apps/api).
- * Deliberately NOT shared/imported across the monorepo boundary —
- * this copy exists purely for instant UX feedback; the backend copy
- * is the actual security enforcement. See Step 9 architectural
- * decision 2.3 for why these are intentionally two files, not one.
+ * Frontend-side mirror of the backend's authSchemas.ts (apps/api) Purely for instant UX feedback;
+ * the backend copy is the actual security enforcement.
  */
 const passwordSchema = z
   .string()

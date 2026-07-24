@@ -10,13 +10,7 @@ interface FormTextFieldProps<TFormValues extends FieldValues> {
 }
 
 /**
- * Reusable bridge between React Hook Form's Controller and MUI's
- * TextField, wiring error display automatically from RHF's field
- * state. Every form field in the app (login, register, and later
- * category/expense forms) uses this instead of manually wiring
- * Controller + TextField + error props at every call site — this is
- * one of the highest-leverage reusable components in the whole app,
- * since Steps 9-10 collectively need a dozen+ text fields.
+ * Reusable component for forms
  */
 export function FormTextField<TFormValues extends FieldValues>({
   name,
