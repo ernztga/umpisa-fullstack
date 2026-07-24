@@ -12,6 +12,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:populate": "tsx prisma/populate.ts",
     "test": "jest",
     "test:unit": "jest --testPathPatterns=unit",
     "test:integration": "dotenv -e .env.test -- jest --testPathPatterns=integration --runInBand",

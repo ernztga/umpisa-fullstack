@@ -19,6 +19,14 @@ export interface ExchangeRateResponse {
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 200;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes (for currency)
+
+interface CacheEntry {
+  rate: number;
+  expiresAt: number;
+}
+
+const rateCache = new Map<string, CacheEntry>();
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -37,6 +45,12 @@ export async function getExchangeRate(
   toCurrency: string,
 ): Promise<number | null> {
   if (fromCurrency === toCurrency) return 1;
+
+  const cacheKey = `${fromCurrency}_${toCurrency}`;
+  const cached = rateCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.rate;
+  }
 
   const url = `${env.FX_API_BASE_URL}/convert?from=${fromCurrency}&to=${toCurrency}&amount=1&api_key=${env.FX_API_KEY}`;
 
@@ -59,7 +73,14 @@ export async function getExchangeRate(
 
       const data = (await response.json()) as ExchangeRateResponse;
       // return data.conversion_rate ?? null; Temporarily switched to fastforex API
-      return data.result?.rate ?? null;
+
+      const rate = data.result?.rate ?? null;
+
+      if (rate !== null) {
+        rateCache.set(cacheKey, { rate, expiresAt: Date.now() + CACHE_TTL_MS });
+      }
+
+      return rate;
     } catch (error) {
       const isLastAttempt = attempt === MAX_RETRIES;
       logger.warn(

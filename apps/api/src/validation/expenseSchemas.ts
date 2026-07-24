@@ -39,11 +39,30 @@ export const expenseFilterSchema = z
     categoryId: z.string().uuid().optional(),
     startDate: z.coerce.date().optional(),
     endDate: z.coerce.date().optional(),
+    description: z.string().trim().min(1).max(200).optional(),
+    minAmount: z
+      .string()
+      .regex(/^\d+(\.\d{1,2})?$/, 'Must be a valid amount')
+      .optional(),
+    maxAmount: z
+      .string()
+      .regex(/^\d+(\.\d{1,2})?$/, 'Must be a valid amount')
+      .optional(),
   })
   .refine((data) => !data.startDate || !data.endDate || data.startDate <= data.endDate, {
     message: 'startDate must be before or equal to endDate',
-  });
+  })
+  .refine(
+    (data) =>
+      !data.minAmount || !data.maxAmount || Number(data.minAmount) <= Number(data.maxAmount),
+    { message: 'minAmount must be less than or equal to maxAmount' },
+  );
 
+export const expenseSortFieldSchema = z.enum(['date', 'description', 'category', 'amount']);
+export const sortDirectionSchema = z.enum(['asc', 'desc']);
+
+export type ExpenseSortField = z.infer<typeof expenseSortFieldSchema>;
+export type SortDirection = z.infer<typeof sortDirectionSchema>;
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>;
 export type ExpenseFilterInput = z.infer<typeof expenseFilterSchema>;

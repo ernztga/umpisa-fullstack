@@ -10,6 +10,9 @@ import {
 } from '@/services/authService';
 import { setAuthCookies, clearAuthCookies, getRefreshTokenCookieName } from '@/utils/cookies';
 import { AuthenticationError } from '@/errors/AppError';
+import { requireAuth } from '../requireAuth';
+import { updateProfileSchema } from '@/validation/userSchemas';
+import { updateUserProfile } from '@/services/userService';
 
 export const authResolvers = {
   Query: {
@@ -59,5 +62,10 @@ export const authResolvers = {
       clearAuthCookies(context.res);
       return true;
     },
+
+    updateProfile: requireAuth((_parent: unknown, args: { input: unknown }, context) => {
+      const input = updateProfileSchema.parse(args.input);
+      return updateUserProfile(context.prisma, context.user.id, input);
+    }),
   },
 };

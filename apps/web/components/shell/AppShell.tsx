@@ -16,7 +16,10 @@ import {
   MenuItem,
   Typography,
   Divider,
+  useMediaQuery,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -45,17 +48,16 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-/**
- * Persistent authenticated shell: sidebar nav + top bar with a user
- * menu (logout). Rendered once by the dashboard layout, wrapping
- * every protected screen — see architectural decision 2.2.
- */
 export function AppShell({ userInitial, userName, children }: AppShellProps): React.JSX.Element {
+  const theme = useTheme();
+  const isCompact = useMediaQuery(theme.breakpoints.down('md'));
+
   const pathname = usePathname();
   const router = useRouter();
   const { showSuccess } = useToast();
   const setAuthenticated = useSessionStore((state) => state.setAuthenticated);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [logout] = useMutation(LOGOUT_MUTATION, {
     onCompleted: () => {
@@ -70,6 +72,23 @@ export function AppShell({ userInitial, userName, children }: AppShellProps): Re
     void logout();
   };
 
+  const navList = (
+    <List>
+      {NAV_ITEMS.map((item) => (
+        <ListItemButton
+          key={item.href}
+          component={NextLink}
+          href={item.href}
+          selected={pathname === item.href}
+          onClick={() => isCompact && setDrawerOpen(false)}
+        >
+          <ListItemIcon>{item.icon}</ListItemIcon>
+          <ListItemText primary={item.label} />
+        </ListItemButton>
+      ))}
+    </List>
+  );
+
   return (
     <Box sx={{ display: 'flex' }}>
       <AppBar
@@ -77,13 +96,19 @@ export function AppShell({ userInitial, userName, children }: AppShellProps): Re
         color="inherit"
         elevation={0}
         sx={{
-          width: `calc(100% - ${DRAWER_WIDTH}px)`,
-          ml: `${DRAWER_WIDTH}px`,
+          width: isCompact ? '100%' : `calc(100% - ${DRAWER_WIDTH}px)`,
+          ml: isCompact ? 0 : `${DRAWER_WIDTH}px`,
           borderBottom: '1px solid',
           borderColor: 'divider',
         }}
       >
-        <Toolbar sx={{ justifyContent: 'flex-end' }}>
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          {isCompact && (
+            <IconButton onClick={() => setDrawerOpen(true)} aria-label="Open navigation">
+              <MenuIcon />
+            </IconButton>
+          )}
+          <Box sx={{ flexGrow: 1 }} />
           <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 14 }}>
               {userInitial}
@@ -91,12 +116,7 @@ export function AppShell({ userInitial, userName, children }: AppShellProps): Re
           </IconButton>
           <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
             <Box sx={{ px: 2, py: 1 }}>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 600,
-                }}
-              >
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 {userName}
               </Typography>
             </Box>
@@ -112,7 +132,10 @@ export function AppShell({ userInitial, userName, children }: AppShellProps): Re
       </AppBar>
 
       <Drawer
-        variant="permanent"
+        variant={isCompact ? 'temporary' : 'permanent'}
+        open={isCompact ? drawerOpen : true}
+        onClose={() => setDrawerOpen(false)}
+        ModalProps={{ keepMounted: true }} // better mobile open-performance
         sx={{
           width: DRAWER_WIDTH,
           flexShrink: 0,
@@ -120,32 +143,14 @@ export function AppShell({ userInitial, userName, children }: AppShellProps): Re
         }}
       >
         <Toolbar>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 700,
-              color: 'primary.main',
-            }}
-          >
+          <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
             Finance Tracker
           </Typography>
         </Toolbar>
-        <List>
-          {NAV_ITEMS.map((item) => (
-            <ListItemButton
-              key={item.href}
-              component={NextLink}
-              href={item.href}
-              selected={pathname === item.href}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.label} />
-            </ListItemButton>
-          ))}
-        </List>
+        {navList}
       </Drawer>
 
-      <Box component="main" sx={{ flexGrow: 1, p: 4, mt: 8 }}>
+      <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 4 }, mt: 8, width: '100%' }}>
         {children}
       </Box>
     </Box>

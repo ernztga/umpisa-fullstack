@@ -33,7 +33,17 @@ export const ME_QUERY = gql`
       email
       firstName
       lastName
+      preferredCurrency
       createdAt
+    }
+  }
+`;
+
+export const UPDATE_PROFILE_MUTATION = gql`
+  mutation UpdateProfile($input: UpdateProfileInput!) {
+    updateProfile(input: $input) {
+      id
+      preferredCurrency
     }
   }
 `;

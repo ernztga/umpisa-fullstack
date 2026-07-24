@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -12,6 +12,10 @@ import {
   TableCell,
   Chip,
   IconButton,
+  TableSortLabel,
+  TextField,
+  MenuItem,
+  Stack,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -20,6 +24,7 @@ import { QueryStateHandler } from '@/components/shared/QueryStateHandler';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { ExpenseFormDialog } from '@/components/expenses/ExpenseFormDialog';
 import { useExpenses, type ExpenseDTO } from '@/lib/hooks/useExpenses';
+import { useCategories } from '@/lib/hooks/useCategories';
 import {
   CREATE_EXPENSE_MUTATION,
   UPDATE_EXPENSE_MUTATION,
@@ -29,8 +34,23 @@ import { useAuthMutation } from '@/lib/hooks/useAuthMutation';
 import { useToast } from '@/lib/store/useToastStore';
 import type { ExpenseFormValues } from '@/lib/validation/expenseSchemas';
 
+type SortField = 'date' | 'description' | 'category' | 'amount';
+
 export default function ExpensesPage(): React.JSX.Element {
-  const { expenses, hasNextPage, loading, error, loadMore, refetch } = useExpenses({ first: 20 });
+  const { categories } = useCategories();
+  const [descriptionFilter, setDescriptionFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [sortBy, setSortBy] = useState<SortField>('date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const { expenses, hasNextPage, loading, error, loadMore, refetch } = useExpenses({
+    first: 20,
+    description: descriptionFilter || undefined,
+    categoryId: categoryFilter || undefined,
+    sortBy,
+    sortDirection,
+  });
+
   const { showSuccess } = useToast();
   const [formOpen, setFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseDTO | null>(null);
@@ -43,7 +63,6 @@ export default function ExpensesPage(): React.JSX.Element {
       void refetch();
     },
   });
-
   const [updateExpense, { loading: updating }] = useAuthMutation(UPDATE_EXPENSE_MUTATION, {
     onCompleted: () => {
       showSuccess('Expense updated.');
@@ -52,7 +71,6 @@ export default function ExpensesPage(): React.JSX.Element {
       void refetch();
     },
   });
-
   const [deleteExpense, { loading: deleting }] = useAuthMutation(DELETE_EXPENSE_MUTATION, {
     onCompleted: () => {
       showSuccess('Expense deleted.');
@@ -70,15 +88,40 @@ export default function ExpensesPage(): React.JSX.Element {
     }
   };
 
+  const handleSort = (field: SortField): void => {
+    if (sortBy === field) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortHeader = (field: SortField, label: string): React.JSX.Element => (
+    <TableCell>
+      <TableSortLabel
+        active={sortBy === field}
+        direction={sortBy === field ? sortDirection : 'asc'}
+        onClick={() => handleSort(field)}
+      >
+        {label}
+      </TableSortLabel>
+    </TableCell>
+  );
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 600,
-          }}
-        >
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+          flexWrap: 'wrap',
+          gap: 1,
+        }}
+      >
+        <Typography variant="h4" sx={{ fontWegight: 600 }}>
           Expenses
         </Typography>
         <Button
@@ -93,60 +136,87 @@ export default function ExpensesPage(): React.JSX.Element {
         </Button>
       </Box>
 
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+        <TextField
+          label="Search description"
+          size="small"
+          value={descriptionFilter}
+          onChange={(e) => setDescriptionFilter(e.target.value)}
+          sx={{ minWidth: 220 }}
+        />
+        <TextField
+          select
+          label="Category"
+          size="small"
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          sx={{ minWidth: 180 }}
+        >
+          <MenuItem value="">All categories</MenuItem>
+          {categories.map((c) => (
+            <MenuItem key={c.id} value={c.id}>
+              {c.name}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Stack>
+
       <QueryStateHandler
         loading={loading}
         error={error}
         isEmpty={expenses.length === 0}
-        emptyMessage="No expenses logged yet — add your first one to get started."
+        emptyMessage="No expenses match your filters."
         onRetry={() => void refetch()}
       >
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Date</TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell align="right">Amount</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {expenses.map((expense) => (
-              <TableRow key={expense.id} hover>
-                <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
-                <TableCell>{expense.description}</TableCell>
-                <TableCell>
-                  {expense.category ? (
-                    <Chip
-                      size="small"
-                      label={expense.category.name}
-                      sx={{ bgcolor: expense.category.color, color: '#fff' }}
-                    />
-                  ) : (
-                    <Chip size="small" label="Uncategorized" variant="outlined" />
-                  )}
-                </TableCell>
-                <TableCell align="right">
-                  {expense.currency} {expense.amount}
-                </TableCell>
-                <TableCell align="right">
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      setEditingExpense(expense);
-                      setFormOpen(true);
-                    }}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton size="small" onClick={() => setDeleteTarget(expense)}>
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </TableCell>
+        <Box sx={{ overflowX: 'auto' }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                {sortHeader('date', 'Date')}
+                {sortHeader('description', 'Description')}
+                {sortHeader('category', 'Category')}
+                {sortHeader('amount', 'Amount')}
+                <TableCell align="right">Actions</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {expenses.map((expense) => (
+                <TableRow key={expense.id} hover>
+                  <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
+                  <TableCell>{expense.description}</TableCell>
+                  <TableCell>
+                    {expense.category ? (
+                      <Chip
+                        size="small"
+                        label={expense.category.name}
+                        sx={{ bgcolor: expense.category.color, color: '#fff' }}
+                      />
+                    ) : (
+                      <Chip size="small" label="Uncategorized" variant="outlined" />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {expense.currency} {expense.amount}
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setEditingExpense(expense);
+                        setFormOpen(true);
+                      }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" onClick={() => setDeleteTarget(expense)}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
 
         {hasNextPage && (
           <Box sx={{ textAlign: 'center', mt: 2 }}>
@@ -162,7 +232,6 @@ export default function ExpensesPage(): React.JSX.Element {
         onClose={() => setFormOpen(false)}
         onSubmit={handleSubmit}
       />
-
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         title="Delete expense?"

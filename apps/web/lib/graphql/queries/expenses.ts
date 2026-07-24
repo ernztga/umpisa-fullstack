@@ -1,8 +1,20 @@
 import { gql } from '@apollo/client';
 
 export const EXPENSES_QUERY = gql`
-  query Expenses($first: Int, $after: ID, $filter: ExpenseFilterInput) {
-    expenses(first: $first, after: $after, filter: $filter) {
+  query Expenses(
+    $first: Int
+    $after: ID
+    $filter: ExpenseFilterInput
+    $sortBy: ExpenseSortField
+    $sortDirection: SortDirection
+  ) {
+    expenses(
+      first: $first
+      after: $after
+      filter: $filter
+      sortBy: $sortBy
+      sortDirection: $sortDirection
+    ) {
       items {
         id
         amount
@@ -59,6 +71,28 @@ export const DELETE_EXPENSE_MUTATION = gql`
   mutation DeleteExpense($id: ID!) {
     deleteExpense(id: $id) {
       id
+    }
+  }
+`;
+
+export const EXPENSES_WITH_CONVERSION_QUERY = gql`
+  query ExpensesWithConversion($first: Int, $filter: ExpenseFilterInput, $targetCurrency: String!) {
+    expenses(first: $first, filter: $filter) {
+      items {
+        id
+        amount
+        currency
+        convertedAmount(targetCurrency: $targetCurrency)
+        description
+        date
+        category {
+          id
+          name
+          color
+        }
+      }
+      hasNextPage
+      endCursor
     }
   }
 `;

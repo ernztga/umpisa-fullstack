@@ -64,4 +64,35 @@ export const expenseTypeDefs = gql`
     updateExpense(id: ID!, input: UpdateExpenseInput!): Expense!
     deleteExpense(id: ID!): Expense!
   }
+
+  enum ExpenseSortField {
+    date
+    description
+    category
+    amount
+  }
+
+  enum SortDirection {
+    asc
+    desc
+  }
+
+  input ExpenseFilterInput {
+    categoryId: ID
+    startDate: DateTime
+    endDate: DateTime
+    description: String
+    minAmount: String
+    maxAmount: String
+  }
+
+  extend type Query {
+    expenses(
+      first: Int
+      after: ID
+      filter: ExpenseFilterInput
+      sortBy: ExpenseSortField
+      sortDirection: SortDirection
+    ): ExpenseConnection!
+  }
 `;
