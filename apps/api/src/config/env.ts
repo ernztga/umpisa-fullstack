@@ -24,6 +24,7 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().url(),
 
   FX_API_BASE_URL: z.string().url().default('https://api.exchangerate.host'),
+  FX_API_KEY: z.string().min(1, 'FX_API_KEY is required'),
 });
 
 /**
