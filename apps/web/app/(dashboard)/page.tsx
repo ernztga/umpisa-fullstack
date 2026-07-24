@@ -32,7 +32,7 @@ export default function DashboardPage(): React.JSX.Element {
   const startDate = useMemo(() => subDays(new Date(), 90).toISOString(), []);
 
   const { data: meData, loading: meLoading } = useQuery<MeQueryData>(ME_QUERY);
-  const preferredCurrency = meData?.me?.preferredCurrency ?? 'USD';
+  const preferredCurrency = meData?.me?.preferredCurrency ?? 'PHP';
 
   const { data, loading, error, refetch } = useQuery<ExpensesQueryData>(
     EXPENSES_WITH_CONVERSION_QUERY,
@@ -45,11 +45,7 @@ export default function DashboardPage(): React.JSX.Element {
   const expenses = data?.expenses.items ?? [];
 
   // Prefer the converted amount; if conversion failed for a given
-  // expense (external FX API outage — see fxService's graceful-null
-  // design from Step 6), fall back to its original amount so the
-  // total is still USEFUL, even if not perfectly accurate for that
-  // one line item. This is a deliberate, explained approximation, not
-  // a silent bug.
+  // expense fall back to its original amount
   const amountInPreferredCurrency = (expense: ExpenseWithConversion): number =>
     Number(expense.convertedAmount ?? expense.amount);
 

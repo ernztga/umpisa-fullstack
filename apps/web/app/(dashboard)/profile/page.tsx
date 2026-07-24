@@ -46,7 +46,7 @@ export default function ProfilePage(): React.JSX.Element {
     reset,
     formState: { isSubmitting },
   } = useForm<ProfileFormValues>({
-    defaultValues: { preferredCurrency: 'USD' },
+    defaultValues: { preferredCurrency: 'PHP' },
   });
 
   useEffect(() => {
